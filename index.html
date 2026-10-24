@@ -20,6 +20,7 @@ p{line-height:1.5;font-size:1.1rem;margin:6px 0}
 .bar i{display:block;height:100%;width:0;background:var(--key);transition:width .4s}
 .q{background:var(--card);border-radius:24px;padding:22px 18px;text-align:center;border:2px solid var(--line)}
 .big{font-size:3rem;font-weight:600;letter-spacing:.12em;margin:10px 0;min-height:3.6rem;word-break:break-word}
+.big.w{font-size:2rem}
 .opts{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
 .opt{font:inherit;font-size:1.6rem;font-weight:600;color:var(--ink);background:var(--bg);border:3px solid var(--line);border-radius:18px;padding:16px 8px;cursor:pointer;min-height:84px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
 .opt small{font-size:.8rem;color:var(--soft);font-weight:400}
@@ -46,20 +47,25 @@ p{line-height:1.5;font-size:1.1rem;margin:6px 0}
 var M={A:'.-',E:'.',I:'..',M:'--',N:'-.',O:'---',S:'...',T:'-',R:'.-.',D:'-..',K:'-.-',U:'..-',G:'--.',W:'.--',L:'.-..',B:'-...'};
 var LEVELS=[
  {name:'Fácil',txt:'8 letras: A E I M N O S T',letters:'AEIMNOST'},
- {name:'Más difícil',txt:'Con 8 letras nuevas',letters:'AEIMNOSTRDKUGWLB'}
+ {name:'Más difícil',txt:'Con 8 letras nuevas',letters:'AEIMNOSTRDKUGWLB'},
+ {name:'Palabras de 3 letras',txt:'10 palabras para descifrar. Cada letra va separada por un hueco.',letters:'AEIMNOSTRDKUGWLB',words:true}
 ];
+var WORDS='SOL MAR SAL MES DOS OSO UNO GOL SUR MIL SER DAR RED GAS BUS TEN SIN MAL LOS BOA'.split(' ');
+function sim(a,b){var n=0;for(var i=0;i<a.length;i++){if(a[i]===b[i])n+=2;else if(b.indexOf(a[i])>-1)n++}return n}
+WORDS.forEach(function(w){M[w]=w.split('').map(function(c){return M[c]}).join(' ')});
 var app=document.getElementById('app'),state={};
 var PRAISE=['¡Muy bien, lo has hecho genial!','¡Perfecto! ¡Eres un crack del Morse!','¡Genial! ¡Qué bien lo haces!','¡Correcto! ¡Un telegrafista de primera!','¡Bravo! ¡Sigue así!'];
 var RETRY=['¡Casi! No pasa nada, así se aprende.','¡Uy, por poco! La próxima te sale.','¡Ánimo! Mira cuál era y la próxima la clavas.'];
 function pick(a){return a[Math.floor(Math.random()*a.length)]}
 function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t}return a}
-function pretty(m){return m.replace(/\./g,'●').replace(/-/g,'▬')}
+function pretty(m){return m.replace(/\./g,'●').replace(/-/g,'▬').replace(/ /g,'\u00a0\u00a0\u00a0')}
 var ctx=null;
 function beeps(code){
   try{
     ctx=ctx||new (window.AudioContext||window.webkitAudioContext)();
     var t=ctx.currentTime+0.05;
     code.split('').forEach(function(c){
+      if(c===' '){t+=0.3;return}
       var d=c==='.'?0.12:0.36,o=ctx.createOscillator(),g=ctx.createGain();
       o.frequency.value=650;o.connect(g);g.connect(ctx.destination);
       g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.25,t+0.01);g.gain.setValueAtTime(0.25,t+d-0.02);g.gain.exponentialRampToValueAtTime(0.0001,t+d);
@@ -67,7 +73,7 @@ function beeps(code){
     });
   }catch(e){}
 }
-function version(){return '<div class="version">Código Morse · v1.0</div>'}
+function version(){return '<div class="version">Código Morse · v1.1</div>'}
 function home(){
   app.innerHTML='<h1>Quiz de código Morse</h1><p class="soft">Toca la respuesta correcta. ¡Son 10 preguntas!</p>'+
   LEVELS.map(function(l,i){return '<div class="q" style="margin-top:14px"><div style="font-size:1.4rem;font-weight:600">'+l.name+'</div><p class="soft">'+l.txt+'</p><button class="btn" data-l="'+i+'">Empezar</button></div>'}).join('')+
@@ -75,7 +81,7 @@ function home(){
   app.querySelectorAll('[data-l]').forEach(function(b){b.onclick=function(){start(+b.dataset.l)}});
 }
 function start(l){
-  var L=LEVELS[l].letters.split('');
+  var L=LEVELS[l].words?WORDS:LEVELS[l].letters.split('');
   var qs=shuffle(L).slice(0,10);
   while(qs.length<10)qs.push(pick(L));
   state={l:l,L:L,qs:qs,i:0,score:0,wrong:[]};
@@ -83,15 +89,15 @@ function start(l){
 }
 function ask(){
   var s=state,letter=s.qs[s.i],mode=Math.random()<0.5?'decode':'encode';
-  var others=shuffle(s.L.filter(function(x){return x!==letter})).slice(0,3);
+  var others=shuffle(s.L.filter(function(x){return x!==letter}));if(letter.length>1){others.sort(function(a,b){return sim(b,letter)-sim(a,letter)})}others=others.slice(0,3);
   var opts=shuffle([letter].concat(others)),code=M[letter];
   var head=mode==='decode'
-    ?'<p>¿Qué letra es esta?</p><div class="big" aria-label="Código Morse">'+pretty(code)+'</div><button class="btn alt" id="snd">🔊 Escuchar</button>'
-    :'<p>¿Cómo se escribe esta letra en Morse?</p><div class="big">'+letter+'</div>';
+    ?'<p>'+(letter.length>1?'¿Qué palabra es esta?':'¿Qué letra es esta?')+'</p><div class="big'+(letter.length>1?' w':'')+'" aria-label="Código Morse">'+pretty(code)+'</div><button class="btn alt" id="snd">🔊 Escuchar</button>'
+    :'<p>¿Cómo se escribe '+(letter.length>1?'esta palabra':'esta letra')+' en Morse?</p><div class="big">'+letter+'</div>';
   var optHtml=opts.map(function(o){
     return mode==='decode'
       ?'<button class="opt" data-v="'+o+'">'+o+'</button>'
-      :'<button class="opt" data-v="'+o+'" style="font-size:1.8rem;letter-spacing:.15em">'+pretty(M[o])+'</button>';
+      :'<button class="opt" data-v="'+o+'" style="font-size:'+(letter.length>1?'1.1':'1.8')+'rem;letter-spacing:.1em">'+pretty(M[o])+'</button>';
   }).join('');
   app.innerHTML='<div class="top"><span class="soft">Pregunta '+(s.i+1)+' de 10</span><span>⭐ '+s.score+'</span></div>'+
    '<div class="bar"><i style="width:'+(s.i*10)+'%"></i></div>'+
