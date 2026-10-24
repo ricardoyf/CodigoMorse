@@ -37,28 +37,42 @@ p{line-height:1.5;font-size:1.1rem;margin:6px 0}
 .chart{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:14px 0;font-size:1.1rem}
 .chart div{background:var(--card);border:2px solid var(--line);border-radius:14px;padding:8px 4px}
 .chart b{display:block;font-size:1.4rem}
+.deck-buttons{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.deck-buttons .btn{margin-top:0;padding:12px 16px}
+.study{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:16px}
+.study-card{background:var(--bg);border:2px solid var(--line);border-radius:16px;padding:12px 8px;text-align:center}
+.study-card b{display:block;font-size:1.35rem;margin-bottom:5px}
+.study-card span{font-size:1.15rem;letter-spacing:.08em;white-space:nowrap}
 .version{margin-top:24px;text-align:center;color:var(--soft);font-size:.78rem;opacity:.75}
 @media (prefers-reduced-motion:reduce){.bar i{transition:none}}
 @media (min-width:600px) and (orientation:portrait){
  main{max-width:720px;padding:32px 28px 56px}
  h1{font-size:2.2rem}.q{padding:28px 26px}.big{font-size:3.5rem}.big.w{font-size:2.25rem}
  .opt{min-height:104px;font-size:1.9rem}.btn{font-size:1.35rem;padding:16px 30px}
+ .study{grid-template-columns:repeat(3,1fr)}
 }
 </style>
 </head>
 <body>
 <main id="app"></main>
 <script>
-var M={A:'.-',E:'.',I:'..',M:'--',N:'-.',O:'---',S:'...',T:'-',R:'.-.',D:'-..',K:'-.-',U:'..-',G:'--.',W:'.--',L:'.-..',B:'-...'};
+var M={A:'.-',B:'-...',C:'-.-.',D:'-..',E:'.',F:'..-.',G:'--.',H:'....',I:'..',J:'.---',K:'-.-',L:'.-..',M:'--',N:'-.',O:'---',P:'.--.',Q:'--.-',R:'.-.',S:'...',T:'-',U:'..-',V:'...-',W:'.--',X:'-..-',Y:'-.--',Z:'--..'};
 var LEVELS=[
- {name:'Fácil',txt:'8 letras: A E I M N O S T',letters:'AEIMNOST'},
- {name:'Más difícil',txt:'Con 8 letras nuevas',letters:'AEIMNOSTRDKUGWLB'},
- {name:'Palabras de 3 letras',txt:'10 palabras para descifrar. Cada letra va separada por un hueco.',items:'words3'},
- {name:'Palabras de 4 letras',txt:'10 palabras nuevas para practicar en tableta vertical.',items:'words4'}
+ {name:'Fácil',txt:'8 letras diferentes en cada mazo.',decks:['AEIMNOST','RDKUGWLB']},
+ {name:'Más difícil',txt:'Dos mazos con combinaciones amplias del abecedario.',decks:['AEIMNOSTRDKUGWLB','CFHJPQVXYZAEIMNO']},
+ {name:'Palabras de 3 letras',txt:'Dos mazos de 10 palabras. Cada letra va separada por un hueco.',decks:['words3a','words3b']},
+ {name:'Palabras de 4 letras',txt:'Dos mazos de 10 palabras para practicar en tableta vertical.',decks:['words4a','words4b']},
+ {name:'Palabras de 5 letras',txt:'Dos mazos nuevos de 10 palabras de cinco letras.',decks:['words5a','words5b']}
 ];
-var WORDS3='SOL MAR SAL MES DOS OSO UNO GOL SUR MIL SER DAR RED GAS BUS TEN SIN MAL LOS BOA'.split(' ');
-var WORDS4='LUNA MESA GATO RISA DADO BOLA NOTA TELA NUBE AMOR'.split(' ');
-var WORDS=WORDS3.concat(WORDS4);
+var DECKS={
+ words3a:'SOL MAR SAL MES DOS OSO UNO GOL SUR MIL'.split(' '),
+ words3b:'SER DAR RED GAS BUS TEN SIN MAL LOS BOA'.split(' '),
+ words4a:'LUNA MESA GATO RISA DADO BOLA NOTA TELA NUBE AMOR'.split(' '),
+ words4b:'CASA PERA MANO RANA VELA ROCA SOPA CAMA PATO LAGO'.split(' '),
+ words5a:'PLAYA PERRO GATOS LIBRO NUBES CAMPO RATON MANGO TARTA BARCO'.split(' '),
+ words5b:'LAPIZ PAPEL FAROS VERDE SILLA RELOJ FUEGO LLAVE PLATO RADIO'.split(' ')
+};
+var WORDS=Object.keys(DECKS).reduce(function(all,k){return all.concat(DECKS[k])},[]);
 function sim(a,b){var n=0;for(var i=0;i<a.length;i++){if(a[i]===b[i])n+=2;else if(b.indexOf(a[i])>-1)n++}return n}
 WORDS.forEach(function(w){M[w]=w.split('').map(function(c){return M[c]}).join(' ')});
 var app=document.getElementById('app'),state={};
@@ -81,19 +95,27 @@ function beeps(code){
     });
   }catch(e){}
 }
-function version(){return '<div class="version">Código Morse · v1.2</div>'}
+function version(){return '<div class="version">Código Morse · v1.3</div>'}
 function home(){
   app.innerHTML='<h1>Quiz de código Morse</h1><p class="soft">Toca la respuesta correcta. ¡Son 10 preguntas!</p>'+
-  LEVELS.map(function(l,i){return '<div class="q" style="margin-top:14px"><div style="font-size:1.4rem;font-weight:600">'+l.name+'</div><p class="soft">'+l.txt+'</p><button class="btn" data-l="'+i+'">Empezar</button></div>'}).join('')+
+  '<div class="q" style="margin-top:14px"><div style="font-size:1.4rem;font-weight:600">Abecedario Morse</div><p class="soft">Consulta la correspondencia completa de la A a la Z para estudiar.</p><button class="btn" id="study">Ver abecedario</button></div>'+
+  LEVELS.map(function(l,i){return '<div class="q" style="margin-top:14px"><div style="font-size:1.4rem;font-weight:600">'+l.name+'</div><p class="soft">'+l.txt+'</p><div class="deck-buttons"><button class="btn" data-l="'+i+'" data-d="0">Mazo 1</button><button class="btn" data-l="'+i+'" data-d="1">Mazo 2</button></div></div>'}).join('')+
  '<p class="soft" style="margin-top:18px">Los puntos son toques cortos (●) y las rayas, largos (▬).</p>'+version();
-  app.querySelectorAll('[data-l]').forEach(function(b){b.onclick=function(){start(+b.dataset.l)}});
+  document.getElementById('study').onclick=study;
+  app.querySelectorAll('[data-l]').forEach(function(b){b.onclick=function(){start(+b.dataset.l,+b.dataset.d)}});
 }
-function start(l){
- var items=LEVELS[l].items;
- var L=items==='words3'?WORDS3:items==='words4'?WORDS4:LEVELS[l].letters.split('');
+function study(){
+ var letters='ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+ app.innerHTML='<div class="top"><button class="btn alt" id="back">← Volver</button><span class="soft">Estudio</span></div><div class="q" style="margin-top:16px"><h1>Abecedario Morse</h1><p class="soft">Toca cualquier letra para escucharla.</p><div class="study">'+letters.map(function(x){return '<button class="study-card" data-code="'+M[x]+'"><b>'+x+'</b><span>'+pretty(M[x])+'</span></button>'}).join('')+'</div></div>'+version();
+ document.getElementById('back').onclick=home;
+ app.querySelectorAll('[data-code]').forEach(function(b){b.onclick=function(){beeps(b.dataset.code)}});
+}
+function start(l,d){
+ var deck=LEVELS[l].decks[d];
+ var L=DECKS[deck]||deck.split('');
   var qs=shuffle(L).slice(0,10);
   while(qs.length<10)qs.push(pick(L));
-  state={l:l,L:L,qs:qs,i:0,score:0,wrong:[]};
+  state={l:l,d:d,L:L,qs:qs,i:0,score:0,wrong:[]};
   ask();
 }
 function ask(){
@@ -136,7 +158,7 @@ function end(){
   var again=s.wrong.length?'<p class="soft">Para repasar: '+s.wrong.filter(function(v,i,a){return a.indexOf(v)===i}).map(function(x){return x+' = '+pretty(M[x])}).join(' · ')+'</p>':'';
   app.innerHTML='<div class="q"><h1>'+sc+' de 10</h1><div class="stars" aria-hidden="true">'+stars+'</div><p>'+t+'</p>'+again+
  '<button class="btn" id="re">Jugar otra vez</button><br><button class="btn alt" id="hm" style="margin-top:12px">Cambiar de nivel</button></div>'+version();
-  document.getElementById('re').onclick=function(){start(s.l)};
+  document.getElementById('re').onclick=function(){start(s.l,s.d)};
   document.getElementById('hm').onclick=home;
 }
 home();
