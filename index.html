@@ -39,6 +39,11 @@ p{line-height:1.5;font-size:1.1rem;margin:6px 0}
 .chart b{display:block;font-size:1.4rem}
 .version{margin-top:24px;text-align:center;color:var(--soft);font-size:.78rem;opacity:.75}
 @media (prefers-reduced-motion:reduce){.bar i{transition:none}}
+@media (min-width:600px) and (orientation:portrait){
+ main{max-width:720px;padding:32px 28px 56px}
+ h1{font-size:2.2rem}.q{padding:28px 26px}.big{font-size:3.5rem}.big.w{font-size:2.25rem}
+ .opt{min-height:104px;font-size:1.9rem}.btn{font-size:1.35rem;padding:16px 30px}
+}
 </style>
 </head>
 <body>
@@ -48,9 +53,12 @@ var M={A:'.-',E:'.',I:'..',M:'--',N:'-.',O:'---',S:'...',T:'-',R:'.-.',D:'-..',K
 var LEVELS=[
  {name:'Fácil',txt:'8 letras: A E I M N O S T',letters:'AEIMNOST'},
  {name:'Más difícil',txt:'Con 8 letras nuevas',letters:'AEIMNOSTRDKUGWLB'},
- {name:'Palabras de 3 letras',txt:'10 palabras para descifrar. Cada letra va separada por un hueco.',letters:'AEIMNOSTRDKUGWLB',words:true}
+ {name:'Palabras de 3 letras',txt:'10 palabras para descifrar. Cada letra va separada por un hueco.',items:'words3'},
+ {name:'Palabras de 4 letras',txt:'10 palabras nuevas para practicar en tableta vertical.',items:'words4'}
 ];
-var WORDS='SOL MAR SAL MES DOS OSO UNO GOL SUR MIL SER DAR RED GAS BUS TEN SIN MAL LOS BOA'.split(' ');
+var WORDS3='SOL MAR SAL MES DOS OSO UNO GOL SUR MIL SER DAR RED GAS BUS TEN SIN MAL LOS BOA'.split(' ');
+var WORDS4='LUNA MESA GATO RISA DADO BOLA NOTA TELA NUBE AMOR'.split(' ');
+var WORDS=WORDS3.concat(WORDS4);
 function sim(a,b){var n=0;for(var i=0;i<a.length;i++){if(a[i]===b[i])n+=2;else if(b.indexOf(a[i])>-1)n++}return n}
 WORDS.forEach(function(w){M[w]=w.split('').map(function(c){return M[c]}).join(' ')});
 var app=document.getElementById('app'),state={};
@@ -73,7 +81,7 @@ function beeps(code){
     });
   }catch(e){}
 }
-function version(){return '<div class="version">Código Morse · v1.1</div>'}
+function version(){return '<div class="version">Código Morse · v1.2</div>'}
 function home(){
   app.innerHTML='<h1>Quiz de código Morse</h1><p class="soft">Toca la respuesta correcta. ¡Son 10 preguntas!</p>'+
   LEVELS.map(function(l,i){return '<div class="q" style="margin-top:14px"><div style="font-size:1.4rem;font-weight:600">'+l.name+'</div><p class="soft">'+l.txt+'</p><button class="btn" data-l="'+i+'">Empezar</button></div>'}).join('')+
@@ -81,7 +89,8 @@ function home(){
   app.querySelectorAll('[data-l]').forEach(function(b){b.onclick=function(){start(+b.dataset.l)}});
 }
 function start(l){
-  var L=LEVELS[l].words?WORDS:LEVELS[l].letters.split('');
+ var items=LEVELS[l].items;
+ var L=items==='words3'?WORDS3:items==='words4'?WORDS4:LEVELS[l].letters.split('');
   var qs=shuffle(L).slice(0,10);
   while(qs.length<10)qs.push(pick(L));
   state={l:l,L:L,qs:qs,i:0,score:0,wrong:[]};
