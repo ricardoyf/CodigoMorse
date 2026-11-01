@@ -44,9 +44,21 @@ p{line-height:1.5;font-size:1.1rem;margin:6px 0}
 .study-card b{display:block;font-size:1.35rem;margin-bottom:5px}
 .study-card span{font-size:1.15rem;letter-spacing:.08em;white-space:nowrap}
 .version{margin-top:24px;text-align:center;color:var(--soft);font-size:.78rem;opacity:.75}
+.tabs{max-width:520px;margin:14px auto 0;padding:0 16px;display:flex;gap:8px}
+.tab{flex:1;font:inherit;font-weight:600;font-size:1.05rem;padding:12px 8px;border:2px solid var(--line);border-radius:16px;background:var(--card);color:var(--ink);cursor:pointer}
+.tab[aria-selected="true"]{background:var(--key);color:#14213d;border-color:var(--key)}
+.tab:focus-visible,.letter-key:focus-visible,.study-card:focus-visible{outline:4px solid var(--key);outline-offset:2px}
+.hang-title{color:#ad4c16}.hang-scene{height:185px;display:flex;justify-content:center;align-items:center;margin:8px auto}
+.ghost{width:180px;height:180px;overflow:visible}.ghost-part{opacity:.08;transition:opacity .3s}.ghost-part.visible{opacity:1}
+.word-slots{display:flex;justify-content:center;flex-wrap:wrap;gap:8px;margin:16px 0;font-size:2rem;font-weight:600}
+.word-slots span{min-width:32px;border-bottom:3px solid var(--ink);line-height:1.3;text-align:center}
+.keyboard{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:16px}
+.letter-key{font:inherit;font-size:1.2rem;font-weight:600;border:2px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink);min-height:44px;cursor:pointer}
+.letter-key:disabled{opacity:.48;cursor:default}.letter-key.hit{background:var(--okbg);border-color:var(--ok)}.letter-key.miss{background:var(--nobg);border-color:var(--no)}
+.hint{padding:10px;border-radius:12px;background:var(--bg);overflow-wrap:anywhere}
 @media (prefers-reduced-motion:reduce){.bar i{transition:none}}
 @media (min-width:600px) and (orientation:portrait){
- main{max-width:720px;padding:32px 28px 56px}
+ main{max-width:720px;padding:32px 28px 56px}.tabs{max-width:720px;padding:0 28px}
  h1{font-size:2.2rem}.q{padding:28px 26px}.big{font-size:3.5rem}.big.w{font-size:2.25rem}
  .opt{min-height:104px;font-size:1.9rem}.btn{font-size:1.35rem;padding:16px 30px}
  .study{grid-template-columns:repeat(3,1fr)}
@@ -54,6 +66,7 @@ p{line-height:1.5;font-size:1.1rem;margin:6px 0}
 </style>
 </head>
 <body>
+<nav class="tabs" aria-label="Juegos"><button class="tab" id="quiz-tab" aria-selected="true">📡 Quiz Morse</button><button class="tab" id="hang-tab" aria-selected="false">👻 Ahorcado</button></nav>
 <main id="app"></main>
 <script>
 var M={A:'.-',B:'-...',C:'-.-.',D:'-..',E:'.',F:'..-.',G:'--.',H:'....',I:'..',J:'.---',K:'-.-',L:'.-..',M:'--',N:'-.',O:'---',P:'.--.',Q:'--.-',R:'.-.',S:'...',T:'-',U:'..-',V:'...-',W:'.--',X:'-..-',Y:'-.--',Z:'--..'};
@@ -72,7 +85,13 @@ var DECKS={
  words5a:'PLAYA PERRO GATOS LIBRO NUBES CAMPO RATON MANGO TARTA BARCO'.split(' '),
  words5b:'LAPIZ PAPEL FAROS VERDE SILLA RELOJ FUEGO LLAVE PLATO RADIO'.split(' ')
 };
-var WORDS=Object.keys(DECKS).reduce(function(all,k){return all.concat(DECKS[k])},[]);
+// GPT-6-SOL 2026-11-01: dos mazos de palabras españolas de dos letras para completar los niveles del ahorcado.
+var HANG_DECKS=[
+ [LEVELS[0].decks[0].split(''),LEVELS[0].decks[1].split('')],
+ ['AL DE EL EN ES IR LA LO MI NO'.split(' '),'OS SE SI SU TE TU UN YO YA VA'.split(' ')],
+ [DECKS.words3a,DECKS.words3b],[DECKS.words4a,DECKS.words4b],[DECKS.words5a,DECKS.words5b]
+];
+var WORDS=Object.keys(DECKS).reduce(function(all,k){return all.concat(DECKS[k])},[]).concat(HANG_DECKS[1][0],HANG_DECKS[1][1]);
 function sim(a,b){var n=0;for(var i=0;i<a.length;i++){if(a[i]===b[i])n+=2;else if(b.indexOf(a[i])>-1)n++}return n}
 WORDS.forEach(function(w){M[w]=w.split('').map(function(c){return M[c]}).join(' ')});
 var app=document.getElementById('app'),state={};
@@ -95,7 +114,11 @@ function beeps(code){
     });
   }catch(e){}
 }
-function version(){return '<div class="version">Código Morse · v1.3</div>'}
+function version(){return '<div class="version">Código Morse · v1.4</div>'}
+// GPT-6-SOL 2026-11-01: navegación entre el quiz original y el nuevo ahorcado.
+function setTab(which){document.getElementById('quiz-tab').setAttribute('aria-selected',which==='quiz');document.getElementById('hang-tab').setAttribute('aria-selected',which==='hang')}
+document.getElementById('quiz-tab').onclick=function(){setTab('quiz');home()};
+document.getElementById('hang-tab').onclick=function(){setTab('hang');hangHome()};
 function home(){
   app.innerHTML='<h1>Quiz de código Morse</h1><p class="soft">Toca la respuesta correcta. ¡Son 10 preguntas!</p>'+
   '<div class="q" style="margin-top:14px"><div style="font-size:1.4rem;font-weight:600">Abecedario Morse</div><p class="soft">Consulta la correspondencia completa de la A a la Z para estudiar.</p><button class="btn" id="study">Ver abecedario</button></div>'+
@@ -161,6 +184,47 @@ function end(){
   document.getElementById('re').onclick=function(){start(s.l,s.d)};
   document.getElementById('hm').onclick=home;
 }
+// GPT-6-SOL 2026-11-01: el fantasma aparece en seis fallos; el Morse sirve de pista sin revelar la palabra.
+var hang={};
+function hangHome(){
+ app.innerHTML='<h1 class="hang-title">👻 Ahorcado de Halloween</h1><p class="soft">Adivina la palabra antes de que aparezca el fantasmita. Puedes escucharla en Morse.</p>'+
+ HANG_DECKS.map(function(decks,i){return '<div class="q" style="margin-top:14px"><div style="font-size:1.4rem;font-weight:600">'+(i+1)+' '+(i===0?'letra':'letras')+'</div><p class="soft">'+(i===0?'Letras de los mazos originales':'Palabras de '+(i+1)+' letras')+'</p><div class="deck-buttons"><button class="btn" data-hl="'+i+'" data-hd="0">Mazo 1</button><button class="btn" data-hl="'+i+'" data-hd="1">Mazo 2</button></div></div>'}).join('')+version();
+ app.querySelectorAll('[data-hl]').forEach(function(b){b.onclick=function(){hangStart(+b.dataset.hl,+b.dataset.hd)}});
+}
+function hangStart(l,d){
+ var pool=HANG_DECKS[l][d],remaining=shuffle(pool);
+ hang={l:l,d:d,remaining:remaining,wins:0,round:0};hangNext();
+}
+function hangNext(){
+ if(!hang.remaining.length){hang.remaining=shuffle(HANG_DECKS[hang.l][hang.d])}
+ hang.word=hang.remaining.pop();hang.used=[];hang.misses=0;hang.round++;hang.done=false;hangRender();
+}
+function ghostSvg(misses){
+ var parts=['<path d="M45 151 L45 42 Q45 17 90 17 Q135 17 135 42 L135 151 L120 139 L106 151 L90 139 L74 151 L60 139 Z" fill="#f7f1ff" stroke="#7f54ae" stroke-width="4"/>','<ellipse cx="74" cy="65" rx="7" ry="11" fill="#392354"/>','<ellipse cx="106" cy="65" rx="7" ry="11" fill="#392354"/>','<ellipse cx="90" cy="96" rx="8" ry="12" fill="#392354"/>','<circle cx="58" cy="91" r="8" fill="#ff8aa8"/> <circle cx="122" cy="91" r="8" fill="#ff8aa8"/>','<path d="M43 120 Q20 100 31 84 M137 120 Q160 100 149 84" fill="none" stroke="#7f54ae" stroke-width="6" stroke-linecap="round"/>'];
+ return '<svg class="ghost" viewBox="0 0 180 180" role="img" aria-label="Fantasma: '+misses+' de 6 fallos">'+parts.map(function(p,i){return '<g class="ghost-part'+(misses>i?' visible':'')+'">'+p+'</g>'}).join('')+'</svg>';
+}
+function hangRender(){
+ var h=hang,solved=h.word.split('').every(function(c){return h.used.indexOf(c)>-1}),lost=h.misses>=6;
+ h.done=solved||lost;
+ var slots=h.word.split('').map(function(c){return '<span>'+((h.used.indexOf(c)>-1||lost)?c:'&nbsp;')+'</span>'}).join('');
+ var keys='ABCDEFGHIJKLMNÑOPQRSTUVWXYZ'.split('').map(function(c){var used=h.used.indexOf(c)>-1,hit=h.word.indexOf(c)>-1;return '<button class="letter-key'+(used?(hit?' hit':' miss'):'')+'" data-letter="'+c+'" '+(used||h.done?'disabled':'')+' aria-label="Letra '+c+'">'+c+'</button>'}).join('');
+ var result=h.done?'<div class="msg '+(solved?'good':'bad')+'" role="status">'+(solved?'¡Has espantado al fantasma!':'¡Buuu! La palabra era '+h.word+'.')+'</div><button class="btn" id="hang-next">Otra palabra</button>':'<div class="msg" role="status" aria-live="polite">'+(6-h.misses)+' intentos restantes</div>';
+ app.innerHTML='<div class="top"><span class="soft">'+(h.l+1)+' '+(h.l===0?'letra':'letras')+' · Mazo '+(h.d+1)+' · Ronda '+h.round+'</span><span>⭐ '+h.wins+'</span></div><div class="q" style="margin-top:14px"><h1 class="hang-title">👻 Ahorcado</h1><div class="hang-scene">'+ghostSvg(h.misses)+'</div><div class="word-slots" aria-label="Palabra: '+h.word.length+' letras">'+slots+'</div><div class="hint"><button class="btn alt" id="hang-sound">🔊 Pista Morse</button><div class="soft" style="margin-top:8px">'+pretty(M[h.word])+'</div></div><div class="keyboard">'+keys+'</div>'+result+'</div><button class="btn alt" id="hang-levels" style="margin-top:14px">← Cambiar nivel</button>'+version();
+ document.getElementById('hang-sound').onclick=function(){beeps(M[h.word])};
+ document.getElementById('hang-levels').onclick=hangHome;
+ if(h.done){document.getElementById('hang-next').onclick=hangNext}
+ else app.querySelectorAll('[data-letter]').forEach(function(b){b.onclick=function(){hangGuess(b.dataset.letter)}});
+}
+function hangGuess(c){
+ if(hang.done||hang.used.indexOf(c)>-1)return;
+ hang.used.push(c);if(hang.word.indexOf(c)===-1)hang.misses++;
+ if(hang.word.split('').every(function(x){return hang.used.indexOf(x)>-1}))hang.wins++;
+ hangRender();
+}
+document.addEventListener('keydown',function(e){
+ if(document.getElementById('hang-tab').getAttribute('aria-selected')!=='true'||!app.querySelector('[data-letter]')||hang.done||e.altKey||e.ctrlKey||e.metaKey||e.target.tagName==='INPUT')return;
+ var c=e.key.toUpperCase();if(/^[A-ZÑ]$/.test(c))hangGuess(c);
+});
 home();
 </script>
 </body>
